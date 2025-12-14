@@ -65,6 +65,20 @@ Example:
 - `patches: (N, P*P*C)`
 - `tokens: (N, D)`
 - `attn: (Hh, Nq, Nk)`
+---
+## File Granularity (IMPORTANT)
+
+Follow a concept-driven file structure.
+
+Rules:
+- One file per **conceptual unit**, not per function.
+- Named models (AutoEncoder, ViT, DETR) must live in their own files.
+- Closely related functions should be grouped in the same module.
+- Do NOT put implementation logic in `main.py`.
+
+If generating code:
+- Place reusable logic in appropriate modules (`models/`, `layers/`, `ops/`).
+- Keep `main.py` as an orchestrator only.
 
 ---
 
