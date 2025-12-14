@@ -13,6 +13,10 @@ from typing import Any
 
 import numpy as np
 
+from .ops.dtype_and_norm import per_channel_normalize, to_float01
+from .ops.tensor_basics import flatten_images, reshape_to_tokens
+from .ops.vectorization import mean_per_image_loop, mean_per_image_vectorized
+
 
 # -----------------------------
 # Config
@@ -24,6 +28,11 @@ class Config:
 
     # Data / demo settings (stage-specific)
     batch_size: int = 8
+    image_hw: tuple[int, int] = (32, 32)
+    channels: int = 3
+
+    # Token reshape demo
+    num_tokens: int = 64
 
     # Visualization
     show_plots: bool = True
@@ -45,7 +54,6 @@ def trace_tensor(name: str, x: np.ndarray) -> None:
     Notes:
         Use this after every meaningful transformation in main.py.
     """
-    # Use float conversion carefully for readable stats
     x_min = float(np.min(x))
     x_max = float(np.max(x))
     x_mean = float(np.mean(x))
@@ -71,6 +79,22 @@ def set_seed(seed: int) -> None:
 
 
 # -----------------------------
+# Data creation (Stage 00: synthetic starter)
+# -----------------------------
+def make_synthetic_images_uint8(cfg: Config) -> np.ndarray:
+    """Create a synthetic batch of uint8 images.
+
+    Returns:
+        images_uint8: (B, H, W, C) uint8
+    """
+    H, W = cfg.image_hw
+    images_uint8 = np.random.randint(
+        0, 256, size=(cfg.batch_size, H, W, cfg.channels), dtype=np.uint8
+    )
+    return images_uint8
+
+
+# -----------------------------
 # Stage pipeline (orchestration)
 # -----------------------------
 def run(cfg: Config) -> dict[str, Any]:
@@ -81,79 +105,40 @@ def run(cfg: Config) -> dict[str, Any]:
     """
     set_seed(cfg.seed)
 
-    # -------------------------
-    # 1) Create / load data (Stage 00: start with synthetic first)
-    #    Later you can swap this with data.cifar10 / data.mnist.
-    # -------------------------
-    # Example: fake "image batch" in uint8 like real images
-    # images_uint8: (B, H, W, C)
-    B, H, W, C = cfg.batch_size, 32, 32, 3
-    images_uint8 = np.random.randint(0, 256, size=(B, H, W, C), dtype=np.uint8)
+    # 1) Create / load data
+    images_uint8 = make_synthetic_images_uint8(cfg)
     trace_tensor("images_uint8", images_uint8)
 
-    # -------------------------
-    # 2) Dtype conversion
-    # -------------------------
-    images_f32 = images_uint8.astype(np.float32)
-    trace_tensor("images_f32", images_f32)
-
-    # -------------------------
-    # 3) Normalization demos (keep logic minimal here; move to ops later)
-    #    In Stage 00, you may temporarily keep a tiny normalization snippet.
-    #    But once ops/dtype_and_norm.py exists, call into it.
-    # -------------------------
-    images_01 = images_f32 / 255.0
+    # 2) Dtype conversion + normalization (ops)
+    images_01 = to_float01(images_uint8)
     trace_tensor("images_01", images_01)
 
-    # Per-channel mean (broadcast over H,W)
-    # mean_c: (C,)
-    mean_c = images_01.mean(axis=(0, 1, 2))
-    # std_c: (C,)
-    std_c = images_01.std(axis=(0, 1, 2)) + 1e-6
+    images_norm, mean_c, std_c = per_channel_normalize(images_01, eps=1e-6)
     trace_tensor("mean_c", mean_c)
     trace_tensor("std_c", std_c)
-
-    # Broadcast: (B,H,W,C) - (C,) -> (B,H,W,C)
-    images_norm = (images_01 - mean_c) / std_c
     trace_tensor("images_norm", images_norm)
 
-    # -------------------------
-    # 4) Reshape demos (bridge to later tokens)
-    # -------------------------
-    flat = images_norm.reshape(B, H * W * C)  # (B, H*W*C)
+    # 3) Reshape demos (ops)
+    flat = flatten_images(images_norm)
     trace_tensor("flat", flat)
 
-    # Toy "tokens": split flattened into N tokens of dimension D
-    # Here we just reshape for intuition.
-    N = 64
-    D = (H * W * C) // N
-    tokens = flat[:, : N * D].reshape(B, N, D)  # (B, N, D)
+    tokens = reshape_to_tokens(flat, num_tokens=cfg.num_tokens)
     trace_tensor("tokens", tokens)
 
-    # -------------------------
-    # 5) Vectorization vs loop sanity (toy example)
-    # -------------------------
-    # Example: per-image mean using loop vs vectorized
-    mean_loop = np.zeros((B,), dtype=np.float32)
-    for i in range(B):
-        mean_loop[i] = float(np.mean(images_norm[i]))
-    mean_vec = images_norm.mean(axis=(1, 2, 3)).astype(np.float32)
-
+    # 4) Vectorization vs loop sanity (ops)
+    mean_loop = mean_per_image_loop(images_norm)
+    mean_vec = mean_per_image_vectorized(images_norm)
     assert_close("loop vs vectorized mean", mean_loop, mean_vec, atol=1e-5)
 
-    # -------------------------
-    # 6) Visualization hook
-    # -------------------------
+    # 5) Visualization hook
     if cfg.show_plots:
-        # Keep the import local so matplotlib is optional for non-plot runs.
-        from .viz.plots import show_histograms, show_image_grid  # type: ignore
+        from .viz.plots import show_histograms, show_image_grid
 
-        # show original and normalized images
         show_image_grid(images_uint8, title="Original uint8 images (B,H,W,C)")
-        # For visualization, bring to [0,1] range:
-        vis_norm = images_01  # (B,H,W,C) in [0,1]
+
+        # For visualization, we can display images_01 scaled back to uint8.
         show_image_grid(
-            (vis_norm * 255.0).astype(np.uint8), title="Normalized images (visualized)"
+            (images_01 * 255.0).astype(np.uint8), title="Normalized images (visualized)"
         )
 
         show_histograms(
@@ -162,7 +147,7 @@ def run(cfg: Config) -> dict[str, Any]:
 
     return {
         "images_uint8": images_uint8,
-        "images_f32": images_f32,
+        "images_01": images_01,
         "images_norm": images_norm,
         "tokens": tokens,
     }
