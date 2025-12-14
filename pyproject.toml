@@ -1,29 +1,48 @@
-[tool.black]
-line-length = 88
-target-version = ["py310"]
-
 [tool.ruff]
 line-length = 88
 target-version = "py310"
 
-# Good default rule set for clean research code
-lint.select = [
-  "E",   # pycodestyle errors
-  "F",   # pyflakes
-  "I",   # isort (import sorting)
-  "B",   # flake8-bugbear
-  "UP",  # pyupgrade
-]
-lint.ignore = [
-  "E501", # line length handled by black (kept here to avoid conflicts)
-]
-
-# Keep notebooks out unless you intentionally lint them
+# Exclude common noise
 exclude = [
   ".venv",
+  ".conda",
   "__pycache__",
   ".ipynb_checkpoints",
+  "build",
+  "dist",
 ]
+
+[tool.ruff.lint]
+# A strong, practical rule set:
+select = [
+  "E",   # pycodestyle errors
+  "F",   # pyflakes (unused imports/vars, etc.)
+  "I",   # isort (import order)
+  "B",   # flake8-bugbear (common footguns)
+  "UP",  # pyupgrade
+  "N",   # pep8-naming
+  "SIM", # flake8-simplify
+  "C4",  # flake8-comprehensions
+  "RUF", # Ruff-specific rules (quality)
+]
+
+# Black handles line length; keep this ignored to avoid conflicts.
+ignore = [
+  "E501",
+]
+
+# Enforce fixes on save/commit via pre-commit; keep these safe by default.
+fixable = ["ALL"]
+unfixable = []
+
+# If you use underscores for intentionally unused variables, allow `_` only.
+# This encourages explicit intent: use `_` for "I truly don't need this".
+dummy-variable-rgx = "^_$"
 
 [tool.ruff.lint.isort]
 known-first-party = ["utils"]
+combine-as-imports = true
+
+[tool.ruff.lint.per-file-ignores]
+# Allow unused imports in package init files
+"__init__.py" = ["F401"]

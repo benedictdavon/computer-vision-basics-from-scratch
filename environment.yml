@@ -1,0 +1,15 @@
+name: cv-basics
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - numpy
+  - matplotlib
+  - pillow
+  - imageio
+  - scipy
+  - pip
+  - pip:
+      - pre-commit
+      - black
+      - ruff
