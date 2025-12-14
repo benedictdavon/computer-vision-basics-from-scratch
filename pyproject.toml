@@ -29,6 +29,7 @@ select = [
 # Black handles line length; keep this ignored to avoid conflicts.
 ignore = [
   "E501",
+  "N806",  # allow H,W,C,N,D style dimension variables
 ]
 
 # Enforce fixes on save/commit via pre-commit; keep these safe by default.
