@@ -1,0 +1,27 @@
+repos:
+  # Basic repo hygiene
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+      - id: check-toml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-added-large-files
+        args: ["--maxkb=2048"]  # 2MB cap, adjust if needed
+
+  # Black formatter
+  - repo: https://github.com/psf/black
+    rev: 25.1.0
+    hooks:
+      - id: black
+        language_version: python3
+
+  # Ruff linter (and optionally fixer)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      # Optional: Ruff formatter (choose ONE formatter: Black OR ruff-format)
+      # - id: ruff-format

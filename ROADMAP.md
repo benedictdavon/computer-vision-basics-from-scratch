@@ -12,10 +12,10 @@ The focus is **understanding**, not performance.
 - Build strong intuition for how CV systems work internally
 - Understand classical CV → deep learning → transformers as a single continuum
 - Connect:
-  - signal processing  
-  - redundancy & compression  
-  - representation learning  
-  - attention & transformers  
+  - signal processing
+  - redundancy & compression
+  - representation learning
+  - attention & transformers
 - Be able to **read CV papers with confidence**
 - Reason clearly about **ViT, MAE, DETR, tracking, and video models**
 
@@ -345,5 +345,5 @@ After completing this roadmap, you should be able to:
 
 ---
 
-**Project philosophy**  
+**Project philosophy**
 > If you can implement it with NumPy, you truly understand it.
