@@ -13,7 +13,14 @@ from typing import Any
 
 import numpy as np
 
-from .ops.dtype_and_norm import per_channel_normalize, to_float01
+from .data.cifar10 import (
+    compute_batch_channel_stats,
+    compute_dataset_channel_stats,
+    iter_cifar10_batches,
+    load_cifar10_images,
+    normalize_with_stats,
+)
+from .ops.dtype_and_norm import to_float01
 from .ops.tensor_basics import flatten_images, reshape_to_tokens
 from .ops.vectorization import mean_per_image_loop, mean_per_image_vectorized
 
@@ -26,18 +33,16 @@ class Config:
     # Reproducibility
     seed: int = 42
 
-    # Data / demo settings (stage-specific)
+    # Dataset
+    data_dir: str = ".data"
+    split: str = "train"
     batch_size: int = 8
-    image_hw: tuple[int, int] = (32, 32)
-    channels: int = 3
 
     # Token reshape demo
     num_tokens: int = 64
 
     # Visualization
     show_plots: bool = True
-
-    # Debug verbosity
     verbose: bool = True
 
 
@@ -79,22 +84,6 @@ def set_seed(seed: int) -> None:
 
 
 # -----------------------------
-# Data creation (Stage 00: synthetic starter)
-# -----------------------------
-def make_synthetic_images_uint8(cfg: Config) -> np.ndarray:
-    """Create a synthetic batch of uint8 images.
-
-    Returns:
-        images_uint8: (B, H, W, C) uint8
-    """
-    H, W = cfg.image_hw
-    images_uint8 = np.random.randint(
-        0, 256, size=(cfg.batch_size, H, W, cfg.channels), dtype=np.uint8
-    )
-    return images_uint8
-
-
-# -----------------------------
 # Stage pipeline (orchestration)
 # -----------------------------
 def run(cfg: Config) -> dict[str, Any]:
@@ -105,25 +94,36 @@ def run(cfg: Config) -> dict[str, Any]:
     """
     set_seed(cfg.seed)
 
-    # 1) Create / load data
-    images_uint8 = make_synthetic_images_uint8(cfg)
+    # 1) dataset statistics
+    batch_iter = iter_cifar10_batches(cfg.data_dir, cfg.split)
+    mean_c, std_c = compute_dataset_channel_stats(batch_iter)
+    trace_tensor("dataset_mean_c", mean_c)
+    trace_tensor("dataset_std_c", std_c)
+
+    # 2) load exploration batch
+    images_uint8 = load_cifar10_images(
+        cfg.data_dir,
+        cfg.split,
+        max_images=cfg.batch_size,
+    )
     trace_tensor("images_uint8", images_uint8)
 
-    # 2) Dtype conversion + normalization (ops)
+    # 3) dtype conversion
     images_01 = to_float01(images_uint8)
     trace_tensor("images_01", images_01)
 
-    images_norm, mean_c, std_c = per_channel_normalize(images_01, eps=1e-6)
-    trace_tensor("mean_c", mean_c)
-    trace_tensor("std_c", std_c)
+    # 4) apply dataset normalization
+    images_norm = normalize_with_stats(images_01, mean_c, std_c)
     trace_tensor("images_norm", images_norm)
 
-    # 3) Reshape demos (ops)
-    flat = flatten_images(images_norm)
-    trace_tensor("flat", flat)
+    # 5) diagnostic batch stats (optional)
+    batch_mean, batch_std = compute_batch_channel_stats(images_01)
+    trace_tensor("batch_mean_c", batch_mean)
+    trace_tensor("batch_std_c", batch_std)
 
-    tokens = reshape_to_tokens(flat, num_tokens=cfg.num_tokens)
-    trace_tensor("tokens", tokens)
+    # 6) reshaping demos
+    flat_pixels = flatten_images(images_norm)
+    tokens = reshape_to_tokens(flat_pixels, cfg.num_tokens)
 
     # 4) Vectorization vs loop sanity (ops)
     mean_loop = mean_per_image_loop(images_norm)

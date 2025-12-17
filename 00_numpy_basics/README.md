@@ -127,8 +127,8 @@ Example:
 ### 3) Demonstrate core transformations (the “playground”)
 - Convert dtype to float32
 - Normalize:
-  - per-image normalization
-  - per-channel normalization
+  - per-channel normalization (dataset-level)
+  - compare batch statistics vs dataset statistics
 - Reshape examples:
   - flatten image to vector: `(B, H*W*C)`
   - convert to tokens style: `(B, N, D)` (toy, just reshape)
