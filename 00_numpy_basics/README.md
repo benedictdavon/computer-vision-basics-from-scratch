@@ -199,6 +199,100 @@ Keep this stage simple but structured:
 
 ---
 
+## Example Outputs & Visualizations
+
+Running `main.py` produces a set of concrete visual artifacts under:
+
+```
+00_numpy_basics/outputs/
+```
+
+These plots are intentionally simple and diagnostic — their purpose is to
+**build intuition**, not aesthetics.
+
+---
+
+### Image Grids
+
+**Original CIFAR-10 images (uint8, NHWC)**
+Shows raw pixel values before any processing.
+
+![Original CIFAR-10 images](outputs/images_uint8.png)
+
+**Normalized images (visualized back to uint8)**
+Images after float conversion and dataset-level normalization
+(rescaled only for display).
+
+![Normalized images](outputs/images_normalized.png)
+
+These help verify:
+- correct dtype handling
+- correct per-channel normalization
+- no unintended clipping or color distortion
+
+---
+
+### Pixel Distribution Diagnostics
+
+**Pixel histogram before vs after normalization**
+
+![Pixel histogram](outputs/pixel_histogram.png)
+
+This plot demonstrates:
+- uint8 → float scaling
+- how normalization recenters and rescales distributions
+- why normalization is essential before any linear algebra
+
+---
+
+### Token & Linear Algebra Visualizations
+
+**Token cosine similarity matrix**
+
+![Token cosine similarity](outputs/token_cosine_similarity.png)
+
+This heatmap shows cosine similarity between token vectors `(N × D)`:
+
+- diagonal ≈ 1.0 (self-similarity)
+- off-diagonal structure reveals redundancy and correlation
+- this is exactly what attention scores *conceptually* measure later
+
+---
+
+**Token Gram matrix**
+
+![Token Gram matrix](outputs/token_gram_matrix.png)
+
+This matrix visualizes raw dot-product similarity:
+
+- magnitude-sensitive
+- highlights scale vs direction differences
+- prepares intuition for `Q @ Kᵀ` in attention
+
+---
+
+### Why These Visualizations Matter
+
+These plots are not “nice-to-have” — they directly support later stages:
+
+| Visualization | Future relevance |
+|---------------|------------------|
+| Image grids | Debugging preprocessing pipelines |
+| Histograms | Diagnosing normalization bugs |
+| Cosine similarity | Attention, retrieval, clustering |
+| Gram matrix | Linear algebra intuition, kernels |
+| Masked tokens | MAE, sparse attention |
+
+If these plots look wrong, **later models will fail silently**.
+
+---
+
+### Reproducibility Note
+
+All plots are deterministic given the fixed seed in `Config`.
+Re-running `main.py` should reproduce identical images and statistics.
+
+---
 ## Key Notes
 - Shapes matter more than values.
 - Prefer explicit reshaping over implicit magic.
