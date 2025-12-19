@@ -1,12 +1,9 @@
 # Stage 00 — CONCEPTS.md
-#
-# Project: Computer Vision Basics from Scratch (NumPy-only)
-# Stage: 00_numpy_basics
-#
-# Purpose:
-# - Lock in the mental models that will power every later stage.
-# - Make tensor reasoning automatic: shapes, axes, layouts, masking, stability.
-# - Keep this file framework-agnostic (works for NumPy, PyTorch, JAX, etc.).
+
+Purpose:
+- Lock in the mental models that will power every later stage.
+- Make tensor reasoning automatic: shapes, axes, layouts, masking, stability.
+- Keep this file framework-agnostic (works for NumPy, PyTorch, JAX, etc.).
 
 ---
 
